@@ -1,0 +1,74 @@
+package appdao;
+
+import java.util.*;
+import java.sql.*;
+public class AppDao {
+	private String usuario;
+	private String senha;
+	private String host;
+	private int porta;
+	private String nomeDb;
+	private PreparedStatement stmC;
+	private PreparedStatement stmR;
+	private PreparedStatement stmU;
+	private PreparedStatement stmD;
+	public AppDao(String u, String s, String h, int p, String db) throws DaoException {
+		usuario = u;
+		senha = s;
+		host = h;
+		porta = p;
+		nomeDb = db;
+		try {
+			Class.forName("org.apache.derby.jdbc.ClientDriver");
+			String url = "jdbc:derby://"+host+":"+porta+"/"+nomeDb;
+			Connection con = DriverManager.getConnection(url, usuario, senha);
+			String sqlC = "insert into app (nome,desenvolvedor,downloads) values (?,?,?)";
+			stmC = con.prepareStatement(sqlC,Statement.RETURN_GENERATED_KEYS);
+			String sqlR = "select * from app";
+			stmR = con.prepareStatement(sqlR); 
+		} catch(ClassNotFoundException ex) {
+			throw new DaoException("Falha ao carregar driver: " + ex.getMessage());
+		} catch(SQLException ex) {
+			throw new DaoException("Erro de conexão: " + ex.getMessage());
+		}
+	}
+	public long create(App a) throws DaoException {
+		long id = -1;
+		try {
+			stmC.setString(1,a.getNome());
+			stmC.setString(2,a.getDesenvolvedor());
+			stmC.setInt(3,a.getDownloads());
+			int r = stmC.executeUpdate();
+			ResultSet rs = stmC.getGeneratedKeys();
+			if (rs.next()) {
+				id = rs.getLong(1);
+			}
+		} catch(SQLException ex) {
+			throw new DaoException("Falha na criação: " + ex.getMessage());
+		}
+		return id;
+	}
+	public List<App> read() throws DaoException {
+		List<App> apps = new ArrayList<>();
+		try {
+			ResultSet rs = stmR.executeQuery();
+			while(rs.next()) {
+				long id = rs.getLong("id");
+				String n = rs.getString("nome");
+				String d = rs.getString("desenvolvedor");
+				int num = rs.getInt("downloads");
+				App a = new App(id, n, d, num);
+				apps.add(a);
+			}
+		} catch(SQLException ex) {
+			throw new DaoException("Falha na leitura: " + ex.getMessage());
+		}
+		return apps;
+	}
+	public void update(App a) throws DaoException {
+		
+	}
+	public void delete(long id) throws DaoException {
+		
+	}
+}
